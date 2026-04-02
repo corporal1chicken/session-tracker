@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QFrame, QPushButton, QScrollArea)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
-from constants import GROUP_BUTTONS
-from dialogs import AddItemDialog
+from constants import GROUP_BUTTONS, BANNER_BUTTONS
+from dialogs import AddItemDialog, NewGroupDialog, RemoveItemDialog
 
 class GroupWidget(QWidget):
     def __init__(self, group_name, items, callback):
@@ -79,6 +79,7 @@ class GroupWidget(QWidget):
 class SessionTracker(QWidget):
     def __init__(self):
         super().__init__()
+        self.current_groups = {}
         self.initUI()
 
     def initUI(self):
@@ -97,15 +98,15 @@ class SessionTracker(QWidget):
         self.groups_layout.setAlignment(Qt.AlignTop)
         
         # Test Groups
-#        groups_data = [
-#            ("GROUP #A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"]),
-#            ("GROUP #B", ["Fortnite", "Valorant", "Apex Legends"]),
-#            ("GROUP #C", ["Cyberpunk 2077", "The Witcher 3", "Elden Ring"]),
-#            ("GROUP #D", ["League of Legends", "Dota 2", "Smite"])
-#        ]
+        groups_data = [
+            ("GROUP #A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"]),
+            ("GROUP #B", ["Fortnite", "Valorant", "Apex Legends"]),
+            ("GROUP #C", ["Cyberpunk 2077", "The Witcher 3", "Elden Ring"]),
+            ("GROUP #D", ["League of Legends", "Dota 2", "Smite"])
+        ]
         
-#        for name, items in groups_data:
-#            self.add_group(name, items)
+        for name, items in groups_data:
+            self.add_group(name, items)
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll)
@@ -124,11 +125,13 @@ class SessionTracker(QWidget):
         control_btns_layout.setSpacing(5)
         control_btns_layout.addStretch()
 
-        for i in range(5):
+        for k, v in BANNER_BUTTONS.items():
             btn = QPushButton()
+            btn.setIcon(QIcon(v['icon']))
+            btn.setToolTip(v['tooltip'])
             btn.setFixedSize(32, 32)
             btn.setStyleSheet("border: 1.5px solid black; border-radius: 6px; background: #f0f0f0;")
-            btn.clicked.connect(lambda checked, b=i: self.banner_btn(b))
+            btn.clicked.connect(lambda checked, b=k: self.banner_btn(b))
             control_btns_layout.addWidget(btn)
 
         control_btns_layout.addStretch()
@@ -146,15 +149,37 @@ class SessionTracker(QWidget):
     def add_group(self, name, items):
         new_group = GroupWidget(name, items, self.group_btn)
         self.groups_layout.addWidget(new_group)
+        self.current_groups[name] = new_group
+
+    def add_item_to_group(self, group_name, item):
+        group = self.current_groups[group_name]
+
+        group.items.append(item)
+        group.items_label.setText("\n".join(group.items))
+
+    def remove_items_from_group(self, group_name, items_to_remove):
+        group = self.current_groups[group_name]
+        print(items_to_remove)
+        new_items = [item for item in group.items if item not in items_to_remove]
+        group.items = new_items
+        group.items_label.setText("\n".join(group.items))
 
     def group_btn(self, group_name, btn_key):
         print(f"Group: {group_name} | Button: {btn_key}")
 
+        group = self.current_groups[group_name]
+
         if btn_key == "add":
             add_dialog = AddItemDialog(self, group_name)
             add_dialog.exec_()
+        elif btn_key == "remove":
+            remove_dialog = RemoveItemDialog(self, group_name, group.items)
+            remove_dialog.exec_()
 
-    def banner_btn(self, index):
-        print(f"Control Button: {index}")
+    def banner_btn(self, btn_key):
+        print(f"Control Button: {btn_key}")
 
-        self.add_group("Group A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"])
+        if btn_key == "new_group":
+            #self.add_group("Group A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"])
+            dialog = NewGroupDialog(self)
+            dialog.exec_()
