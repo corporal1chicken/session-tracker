@@ -1,11 +1,15 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                              QLabel, QFrame, QPushButton, QScrollArea)
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
+from constants import GROUP_BUTTONS
+from dialogs import AddItemDialog
 
 class GroupWidget(QWidget):
     def __init__(self, group_name, items, callback):
         super().__init__()
         self.layout = QVBoxLayout(self)
+        self.items = items
         self.layout.setContentsMargins(0, 5, 0, 15)
         self.layout.setSpacing(8)
 
@@ -54,8 +58,10 @@ class GroupWidget(QWidget):
         btn_layout_inner = QHBoxLayout(btn_container)
         btn_layout_inner.setContentsMargins(5, 0, 5, 0)
         
-        for i in range(3):
+        for k, v in GROUP_BUTTONS.items():
             btn = QPushButton()
+            btn.setIcon(QIcon(v['icon']))
+            btn.setToolTip(v['tooltip'])
             btn.setFixedSize(32, 32)
             btn.setStyleSheet("""
                 QPushButton {
@@ -64,7 +70,7 @@ class GroupWidget(QWidget):
                     background-color: #fcfcfc;
                 }
             """)
-            btn.clicked.connect(lambda checked, gn=group_name, bi=i: callback(gn, bi))
+            btn.clicked.connect(lambda checked, gn=group_name, bi=k: callback(gn, bi))
             btn_layout_inner.addWidget(btn)
         
         self.layout.addWidget(self.container, alignment=Qt.AlignCenter)
@@ -91,15 +97,15 @@ class SessionTracker(QWidget):
         self.groups_layout.setAlignment(Qt.AlignTop)
         
         # Test Groups
-        groups_data = [
-            ("GROUP #A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"]),
-            ("GROUP #B", ["Fortnite", "Valorant", "Apex Legends"]),
-            ("GROUP #C", ["Cyberpunk 2077", "The Witcher 3", "Elden Ring"]),
-            ("GROUP #D", ["League of Legends", "Dota 2", "Smite"])
-        ]
+#        groups_data = [
+#            ("GROUP #A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"]),
+#            ("GROUP #B", ["Fortnite", "Valorant", "Apex Legends"]),
+#            ("GROUP #C", ["Cyberpunk 2077", "The Witcher 3", "Elden Ring"]),
+#            ("GROUP #D", ["League of Legends", "Dota 2", "Smite"])
+#        ]
         
-        for name, items in groups_data:
-            self.add_group(name, items)
+#        for name, items in groups_data:
+#            self.add_group(name, items)
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll)
@@ -141,8 +147,14 @@ class SessionTracker(QWidget):
         new_group = GroupWidget(name, items, self.group_btn)
         self.groups_layout.addWidget(new_group)
 
-    def group_btn(self, group_name, btn_index):
-        print(f"Group: {group_name} | Button: {btn_index}")
+    def group_btn(self, group_name, btn_key):
+        print(f"Group: {group_name} | Button: {btn_key}")
+
+        if btn_key == "add":
+            add_dialog = AddItemDialog(self, group_name)
+            add_dialog.exec_()
 
     def banner_btn(self, index):
         print(f"Control Button: {index}")
+
+        self.add_group("Group A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"])
