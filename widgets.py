@@ -3,7 +3,9 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from constants import GROUP_BUTTONS, BANNER_BUTTONS
-from dialogs import AddItemDialog, NewGroupDialog, RemoveItemDialog
+from dialogs import AddItemDialog, NewGroupDialog, RemoveItemDialog, DeleteGroupDialog
+
+import json
 
 class GroupWidget(QWidget):
     def __init__(self, group_name, items, callback):
@@ -80,6 +82,7 @@ class SessionTracker(QWidget):
     def __init__(self):
         super().__init__()
         self.current_groups = {}
+        self.group_widgets = {}
         self.initUI()
 
     def initUI(self):
@@ -98,15 +101,17 @@ class SessionTracker(QWidget):
         self.groups_layout.setAlignment(Qt.AlignTop)
         
         # Test Groups
-        groups_data = [
-            ("GROUP #A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"]),
-            ("GROUP #B", ["Fortnite", "Valorant", "Apex Legends"]),
-            ("GROUP #C", ["Cyberpunk 2077", "The Witcher 3", "Elden Ring"]),
-            ("GROUP #D", ["League of Legends", "Dota 2", "Smite"])
-        ]
+  #      groups_data = [
+  #          ("GROUP #A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"]),
+  #          ("GROUP #B", ["Fortnite", "Valorant", "Apex Legends"]),
+  #          ("GROUP #C", ["Cyberpunk 2077", "The Witcher 3", "Elden Ring"]),
+  #          ("GROUP #D", ["League of Legends", "Dota 2", "Smite"])
+  #      ]
         
-        for name, items in groups_data:
-            self.add_group(name, items)
+  #      for name, items in groups_data:
+  #          self.add_group(name, items)
+
+        self.load_groups()
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll)
@@ -146,35 +151,82 @@ class SessionTracker(QWidget):
         self.session_label.setStyleSheet("font-size: 20px; padding: 20px;")
         self.main_layout.addWidget(self.session_label)
 
-    def add_group(self, name, items):
+    def load_groups(self):
+        saved_groups = {}
+
+        try:
+            with open('groups.json', 'r') as file:
+                saved_groups = json.load(file)
+            
+        except FileNotFoundError:
+            print("File wasn't found")
+        except json.JSONDecodeError:
+            print("File is empty")
+            saved_groups = {}
+
+        for group, items in saved_groups.items():
+            self.add_group(group, items, False)
+
+    def add_group(self, name, items, save):
         new_group = GroupWidget(name, items, self.group_btn)
         self.groups_layout.addWidget(new_group)
-        self.current_groups[name] = new_group
+        self.current_groups[name] = items
+        self.group_widgets[name] = new_group
+
+        if save:
+            with open("groups.json", "w") as file:
+                json.dump(self.current_groups, file)
 
     def add_item_to_group(self, group_name, item):
-        group = self.current_groups[group_name]
+        group_items = self.current_groups[group_name]
+        group_widget = self.group_widgets[group_name]
 
-        group.items.append(item)
-        group.items_label.setText("\n".join(group.items))
+        group_items.append(item)
+        group_widget.items_label.setText("\n".join(group_items))
+
+        with open("groups.json", "w") as file:
+            json.dump(self.current_groups, file)
 
     def remove_items_from_group(self, group_name, items_to_remove):
         group = self.current_groups[group_name]
-        print(items_to_remove)
-        new_items = [item for item in group.items if item not in items_to_remove]
-        group.items = new_items
-        group.items_label.setText("\n".join(group.items))
+        group_widget = self.group_widgets[group_name]
+        
+        new_items = [item for item in group if item not in items_to_remove]
+        group = new_items
+        
+        group_widget.items_label.setText("\n".join(group))
+
+        with open("groups.json", "w") as file:
+            json.dump(self.current_groups, file)
+
+    def delete_group(self, group_name):
+        widget = self.group_widgets[group_name]
+
+        self.groups_layout.removeWidget(widget)
+            
+        widget.setParent(None)
+        widget.deleteLater()
+
+        self.current_groups.pop(group_name, None)
+        self.group_widgets.pop(group_name, None)
+
+        with open("groups.json", "w") as file:
+            json.dump(self.current_groups, file)
 
     def group_btn(self, group_name, btn_key):
         print(f"Group: {group_name} | Button: {btn_key}")
 
-        group = self.current_groups[group_name]
+        group_items = self.current_groups[group_name]
 
         if btn_key == "add":
             add_dialog = AddItemDialog(self, group_name)
             add_dialog.exec_()
         elif btn_key == "remove":
-            remove_dialog = RemoveItemDialog(self, group_name, group.items)
+            remove_dialog = RemoveItemDialog(self, group_name, group_items)
             remove_dialog.exec_()
+        elif btn_key == "delete":
+            delete_dialog = DeleteGroupDialog(self, group_name)
+            delete_dialog.exec_()
 
     def banner_btn(self, btn_key):
         print(f"Control Button: {btn_key}")

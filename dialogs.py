@@ -77,7 +77,7 @@ class NewGroupDialog(QDialog):
 
     def add(self):
         print(self.input_item.text())
-        self.parent().add_group(self.input_item.text(), [])
+        self.parent().add_group(self.input_item.text(), [], True)
         self.accept()
 
     def cancel(self):
@@ -124,4 +124,34 @@ class RemoveItemDialog(QDialog):
                 checked_items.append(btn.text())
         
         self.parent().remove_items_from_group(self.group_name, checked_items)
+        self.accept()
+
+class DeleteGroupDialog(QDialog):
+    def __init__(self, parent=None, passed_name=None):
+        super().__init__(parent)
+        self.setWindowTitle("Delete Group?")
+        self.setFixedSize(240, 120)
+
+        self.group_name = passed_name
+        
+        layout = QVBoxLayout(self)
+        self.message_label = QLabel(f"Are you sure you want to delete {self.group_name}?")
+        self.message_label.setAlignment(Qt.AlignCenter)
+        self.message_label.setWordWrap(True)
+        layout.addWidget(self.message_label)
+
+        btn_layout = QHBoxLayout()
+  
+        self.continue_btn = QPushButton("Continue")
+        self.continue_btn.clicked.connect(self.close_message)
+        
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.clicked.connect(self.accept)
+
+        btn_layout.addWidget(self.continue_btn)
+        btn_layout.addWidget(self.cancel_btn)
+        layout.addLayout(btn_layout)
+
+    def close_message(self):
+        self.parent().delete_group(self.group_name)
         self.accept()
