@@ -18,7 +18,7 @@ class AddItemDialog(QDialog):
         self.input_item = QLineEdit()
         self.input_item.setPlaceholderText("Enter")
         self.input_item.setStyleSheet("padding: 8px; border-bottom: 1px;")
-        self.input_item.textChanged.connect(self.update_add_btn)
+        #self.input_item.textChanged.connect(self.update_add_btn)
         layout.addWidget(self.input_item)
 
         btn_layout = QHBoxLayout()
@@ -76,7 +76,7 @@ class NewGroupDialog(QDialog):
 
     def add(self):
         print(self.input_item.text())
-        self.parent().add_group(self.input_item.text(), [], True)
+        self.parent().add_group(self.input_item.text(), [], True, True)
         self.accept()
 
     def cancel(self):
@@ -91,7 +91,7 @@ class RemoveItemDialog(QDialog):
         self.setFixedSize(480, 240)
 
         layout = QVBoxLayout(self)
-        self.message_label = QLabel("Remove Item:")
+        self.message_label = QLabel(f"Select items to remove from {passed_name}")
         self.message_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.message_label)
 

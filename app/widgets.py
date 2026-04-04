@@ -1,18 +1,19 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                              QLabel, QFrame, QPushButton, QScrollArea)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 from constants import *
 from dialogs import *
 from helpers import *
 
-import json
+import random
 
 class GroupWidget(QWidget):
-    def __init__(self, group_name, items, callback):
+    def __init__(self, group_name, items, active, callback):
         super().__init__()
         self.layout = QVBoxLayout(self)
         self.items = items
+        self.active = active
         self.layout.setContentsMargins(0, 5, 0, 15)
         self.layout.setSpacing(8)
 
@@ -54,16 +55,17 @@ class GroupWidget(QWidget):
 
         # Buttons
         btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(2)
+        btn_layout.setSpacing(1)
 
         btn_container = QWidget()
-        btn_container.setFixedWidth(120)
+        btn_container.setFixedWidth(150)
         btn_layout_inner = QHBoxLayout(btn_container)
         btn_layout_inner.setContentsMargins(5, 0, 5, 0)
         
         for k, v in GROUP_BUTTONS.items():
             btn = QPushButton()
             btn.setIcon(QIcon(v['icon']))
+            btn.setObjectName(k)
             btn.setToolTip(v['tooltip'])
             btn.setFixedSize(32, 32)
             btn.setStyleSheet("""
@@ -75,15 +77,53 @@ class GroupWidget(QWidget):
             """)
             btn.clicked.connect(lambda checked, gn=group_name, bi=k: callback(gn, bi))
             btn_layout_inner.addWidget(btn)
-        
+
+        self.active_btn = QPushButton()
+        btn.setObjectName("active")
+        self.active_btn.setFixedSize(32, 32)
+        self.active_btn.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #777; 
+                border-radius: 6px; 
+                background-color: #fcfcfc;
+            }
+        """)
+
+        if active:
+            self.active_btn.setIcon(QIcon("icons/tick.png"))
+        else:
+            self.active_btn.setIcon(QIcon("icons/cross.png"))
+
+        self.active_btn.clicked.connect(lambda checked, gn=group_name, bi="active": callback(gn, bi))
+        btn_layout_inner.addWidget(self.active_btn)
+
         self.layout.addWidget(self.container, alignment=Qt.AlignCenter)
         self.layout.addWidget(btn_container, alignment=Qt.AlignCenter)
+
+    def change_active(self):
+        self.active = not self.active
+
+        if self.active:
+            self.active_btn.setIcon(QIcon("icons/tick.png"))
+        else:
+            self.active_btn.setIcon(QIcon("icons/cross.png"))
+
+        return self.active
 
 class SessionTracker(QWidget):
     def __init__(self):
         super().__init__()
         self.current_groups = {}
         self.group_widgets = {}
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_timer)
+
+        self.time_left = 0
+        self.session_active = False
+        self.selected_group = None
+        self.selected_item = None
+
         self.initUI()
 
     def initUI(self):
@@ -100,17 +140,6 @@ class SessionTracker(QWidget):
         self.scroll_content = QWidget()
         self.groups_layout = QVBoxLayout(self.scroll_content)
         self.groups_layout.setAlignment(Qt.AlignTop)
-        
-        # Test Groups
-  #      groups_data = [
-  #          ("GROUP #A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"]),
-  #          ("GROUP #B", ["Fortnite", "Valorant", "Apex Legends"]),
-  #          ("GROUP #C", ["Cyberpunk 2077", "The Witcher 3", "Elden Ring"]),
-  #          ("GROUP #D", ["League of Legends", "Dota 2", "Smite"])
-  #      ]
-        
-  #      for name, items in groups_data:
-  #          self.add_group(name, items)
 
         self.load_groups()
 
@@ -155,33 +184,37 @@ class SessionTracker(QWidget):
     def load_groups(self):
         saved_groups = load_data()
 
-        for group, items in saved_groups.items():
-            self.add_group(group, items, False)
+        for name, data in saved_groups.items():
+            self.add_group(name, data['items'], data['active'], False)
 
-    def add_group(self, name, items, save):
-        new_group = GroupWidget(name, items, self.group_btn)
+    def add_group(self, name, items, active, save):
+        new_group = GroupWidget(name, items, active, self.group_btn)
         self.groups_layout.addWidget(new_group)
+        self.current_groups[name] = {
+            "items": items,
+            "active": active
+        }
         self.group_widgets[name] = new_group
 
         if save: save_data(self.current_groups)
 
     def add_item(self, group_name, item):
-        group_items = self.current_groups[group_name]
+        group_data = self.current_groups[group_name]
         group_widget = self.group_widgets[group_name]
 
-        group_items.append(item)
-        group_widget.items_label.setText("\n".join(group_items))
+        group_data['items'].append(item)
+        group_widget.items_label.setText("\n".join(group_data['items']))
 
         save_data(self.current_groups)
 
     def remove_items(self, group_name, items_to_remove):
-        group = self.current_groups[group_name]
+        group_data = self.current_groups[group_name]
         group_widget = self.group_widgets[group_name]
         
-        new_items = [item for item in group if item not in items_to_remove]
-        group = new_items
+        new_items = [item for item in group_data['items'] if item not in items_to_remove]
+        group_data['items'] = new_items
         
-        group_widget.items_label.setText("\n".join(group))
+        group_widget.items_label.setText("\n".join(group_data['items']))
 
         save_data(self.current_groups)
 
@@ -198,25 +231,62 @@ class SessionTracker(QWidget):
 
         save_data(self.current_groups)
 
+    def start_session(self):
+        if self.session_active:
+            print("session already active")
+            return
+
+        success, message, valid_groups = get_valid_groups(self.current_groups)
+        print(message)
+        if success:
+            self.selected_group = random.choice(list(valid_groups.keys()))
+            self.selected_item = random.choice(valid_groups[self.selected_group]["items"])
+            
+            self.time_left = 1 * 60
+            self.session_active = True
+            self.update_timer()
+
+            self.timer.start(1000)
+
+    def update_timer(self):
+        if self.time_left > 0:
+            self.time_left -= 1
+            self.update_timer_label()
+        else:
+            self.timer.stop()
+            self.timer_label.setText("00:00")
+            self.session_label.setText(f"SESSION COMPLETE: {self.selected_group} - {self.selected_item}")
+
+    def update_timer_label(self):
+        minutes = int(self.time_left // 60)
+        seconds = int(self.time_left % 60)
+        self.timer_label.setText(f"{minutes:02}:{seconds:02}")
+
     def group_btn(self, group_name, btn_key):
         print(f"Group: {group_name} | Button: {btn_key}")
 
-        group_items = self.current_groups[group_name]
+        group_data = self.current_groups[group_name]
+        group_widget = self.group_widgets[group_name]
 
         if btn_key == "add":
             add_dialog = AddItemDialog(self, group_name)
             add_dialog.exec_()
         elif btn_key == "remove":
-            remove_dialog = RemoveItemDialog(self, group_name, group_items)
+            remove_dialog = RemoveItemDialog(self, group_name, group_data['items'])
             remove_dialog.exec_()
         elif btn_key == "delete":
             delete_dialog = DeleteGroupDialog(self, group_name)
             delete_dialog.exec_()
+        elif btn_key == "active":
+            new = group_widget.change_active()
+            group_data['active'] = new 
+            save_data(self.current_groups)
 
     def banner_btn(self, btn_key):
         print(f"Control Button: {btn_key}")
 
         if btn_key == "new_group":
-            #self.add_group("Group A", ["Minecraft", "GTA 6", "Roblox", "PAYDAY 2"])
             dialog = NewGroupDialog(self)
             dialog.exec_()
+        elif btn_key == "start_session":
+            self.start_session()

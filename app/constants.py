@@ -4,6 +4,7 @@ GROUP_BUTTONS = {
     "add": {"tooltip": "Add Item", "icon": "icons/plus.png"},
     "remove": {"tooltip": "Remove Item", "icon": "icons/minus.png"},
     "delete": {"tooltip": "Delete Group", "icon": "icons/bin.png"},
+    #"active": {"tooltip": "Set Active", "icon": ""},
 }
 
 BANNER_BUTTONS = {
