@@ -3,7 +3,6 @@ from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt5.QtCore import Qt
 
 class AddItemDialog(QDialog):
-    group = None
     def __init__(self, parent=None, passed_group=None):
         super().__init__(parent)
         self.group = passed_group
@@ -35,7 +34,7 @@ class AddItemDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def add_item(self):
-        self.parent().add_item_to_group(self.group, self.input_item.text())
+        self.parent().add_item(self.group, self.input_item.text())
 
         self.accept()
 
@@ -84,8 +83,6 @@ class NewGroupDialog(QDialog):
         self.accept()
 
 class RemoveItemDialog(QDialog):
-    group_name = ""
-    group_items = ""
     def __init__(self, parent=None, passed_name=None, passed_items=None):
         super().__init__(parent)
         self.group_name = passed_name
@@ -123,7 +120,7 @@ class RemoveItemDialog(QDialog):
             if btn.isChecked():
                 checked_items.append(btn.text())
         
-        self.parent().remove_items_from_group(self.group_name, checked_items)
+        self.parent().remove_items(self.group_name, checked_items)
         self.accept()
 
 class DeleteGroupDialog(QDialog):

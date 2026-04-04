@@ -2,8 +2,9 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QFrame, QPushButton, QScrollArea)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
-from constants import GROUP_BUTTONS, BANNER_BUTTONS
-from dialogs import AddItemDialog, NewGroupDialog, RemoveItemDialog, DeleteGroupDialog
+from constants import *
+from dialogs import *
+from helpers import *
 
 import json
 
@@ -152,17 +153,7 @@ class SessionTracker(QWidget):
         self.main_layout.addWidget(self.session_label)
 
     def load_groups(self):
-        saved_groups = {}
-
-        try:
-            with open('groups.json', 'r') as file:
-                saved_groups = json.load(file)
-            
-        except FileNotFoundError:
-            print("File wasn't found")
-        except json.JSONDecodeError:
-            print("File is empty")
-            saved_groups = {}
+        saved_groups = load_data()
 
         for group, items in saved_groups.items():
             self.add_group(group, items, False)
@@ -170,24 +161,20 @@ class SessionTracker(QWidget):
     def add_group(self, name, items, save):
         new_group = GroupWidget(name, items, self.group_btn)
         self.groups_layout.addWidget(new_group)
-        self.current_groups[name] = items
         self.group_widgets[name] = new_group
 
-        if save:
-            with open("groups.json", "w") as file:
-                json.dump(self.current_groups, file)
+        if save: save_data(self.current_groups)
 
-    def add_item_to_group(self, group_name, item):
+    def add_item(self, group_name, item):
         group_items = self.current_groups[group_name]
         group_widget = self.group_widgets[group_name]
 
         group_items.append(item)
         group_widget.items_label.setText("\n".join(group_items))
 
-        with open("groups.json", "w") as file:
-            json.dump(self.current_groups, file)
+        save_data(self.current_groups)
 
-    def remove_items_from_group(self, group_name, items_to_remove):
+    def remove_items(self, group_name, items_to_remove):
         group = self.current_groups[group_name]
         group_widget = self.group_widgets[group_name]
         
@@ -196,8 +183,7 @@ class SessionTracker(QWidget):
         
         group_widget.items_label.setText("\n".join(group))
 
-        with open("groups.json", "w") as file:
-            json.dump(self.current_groups, file)
+        save_data(self.current_groups)
 
     def delete_group(self, group_name):
         widget = self.group_widgets[group_name]
@@ -210,8 +196,7 @@ class SessionTracker(QWidget):
         self.current_groups.pop(group_name, None)
         self.group_widgets.pop(group_name, None)
 
-        with open("groups.json", "w") as file:
-            json.dump(self.current_groups, file)
+        save_data(self.current_groups)
 
     def group_btn(self, group_name, btn_key):
         print(f"Group: {group_name} | Button: {btn_key}")

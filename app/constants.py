@@ -1,3 +1,5 @@
+SAVE_PATH = "data/groups.json"
+
 GROUP_BUTTONS = {
     "add": {"tooltip": "Add Item", "icon": "icons/plus.png"},
     "remove": {"tooltip": "Remove Item", "icon": "icons/minus.png"},
