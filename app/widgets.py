@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                              QLabel, QFrame, QPushButton, QScrollArea)
-from PyQt5.QtCore import Qt, QTimer, QEvent
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 from constants import *
 from dialogs import *
@@ -190,7 +190,7 @@ class SessionTracker(QWidget):
         self.main_layout.addWidget(timer_container)
 
         # Current Session
-        self.session_label = QLabel("CURRENT SESSION: None")
+        self.session_label = QLabel("No Session Active")
         self.session_label.setAlignment(Qt.AlignCenter)
         self.session_label.setStyleSheet("font-size: 20px; padding: 20px;")
         self.main_layout.addWidget(self.session_label)
@@ -273,7 +273,7 @@ class SessionTracker(QWidget):
                 self.session_active = True
                 self.session_paused = False
 
-                self.session_label.setText(f"CURRENT SESSION: {self.current_session['group']} - {self.current_session['item']}")
+                self.session_label.setText(f"Session Active: (Group - {self.current_session['group']}) {self.current_session['item']}")
 
                 self.update_timer()
 
@@ -294,12 +294,12 @@ class SessionTracker(QWidget):
     def resume_session(self):
         self.timer.start(1000)
         self.session_paused = False
-        self.session_label.setText(f"CURRENT SESSION: {self.current_session['group']} - {self.current_session['item']}")
+        self.session_label.setText(f"Session Active: (Group - {self.current_session['group']}) {self.current_session['item']}")
 
     def pause_session(self):
         self.timer.stop()
         self.session_paused = True
-        self.session_label.setText(f"PAUSED: {self.current_session['group']} - {self.current_session['item']}")
+        self.session_label.setText("Session Paused")
 
     def end_session(self, start_next):
         if not self.session_active:
@@ -310,7 +310,7 @@ class SessionTracker(QWidget):
         self.session_active = False
         self.session_paused = False
         self.timer_label.setText("00:00")
-        self.session_label.setText(f"SESSION COMPLETE: {self.current_session['group']} - {self.current_session['item']}")
+        self.session_label.setText(f"Session Complete: {self.current_session['item']}")
 
         dialog = SessionEnded(self, f"Completed session")
 
@@ -353,30 +353,37 @@ class SessionTracker(QWidget):
             self.pause_session()
 
     def group_btn(self, group_name, btn_key):
-        print(f"Group: {group_name} | Button: {btn_key}")
-
         group_data = self.current_groups[group_name]
         group_widget = self.group_widgets[group_name]
 
         if btn_key == "add":
             add_dialog = AddItemDialog(self, group_name)
-            add_dialog.exec_()
+
+            if add_dialog.exec_():
+                self.add_item(group_name, add_dialog.get_item())
+
         elif btn_key == "remove":
             remove_dialog = RemoveItemDialog(self, group_name, group_data['items'])
-            remove_dialog.exec_()
+            
+            if remove_dialog.exec_():
+                self.remove_items(group_name, remove_dialog.get_checked_items())
         elif btn_key == "delete":
             delete_dialog = DeleteGroupDialog(self, group_name)
-            delete_dialog.exec_()
+
+            if delete_dialog.exec_():
+                self.delete_group(group_name)
+
         elif btn_key == "active":
             new = group_widget.change_active()
             group_data['active'] = new 
 
     def banner_btn(self, btn_key):
-        print(f"Control Button: {btn_key}")
-
         if btn_key == "new_group":
-            dialog = NewGroupDialog(self)
-            dialog.exec_()
+            new_dialog = NewGroupDialog(self)
+
+            if new_dialog.exec_():
+                self.add_group(new_dialog.get_name(), [], True, True)
+
         elif btn_key == "start_session":
             self.start_session()
         elif btn_key == "toggle_pause":
