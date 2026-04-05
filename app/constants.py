@@ -1,15 +1,14 @@
-SAVE_PATH = "data/groups.json"
+SAVE_PATH = "app/data/groups.json"
+ICON_PATH = "app/icons/"
 
 GROUP_BUTTONS = {
-    "add": {"tooltip": "Add Item", "icon": "icons/plus.png"},
-    "remove": {"tooltip": "Remove Item", "icon": "icons/minus.png"},
-    "delete": {"tooltip": "Delete Group", "icon": "icons/bin.png"},
-    #"active": {"tooltip": "Set Active", "icon": ""},
+    "add": {"tooltip": "Add Item", "icon": f"{ICON_PATH}plus.png"},
+    "remove": {"tooltip": "Remove Item", "icon": f"{ICON_PATH}minus.png"},
+    "delete": {"tooltip": "Delete Group", "icon": f"{ICON_PATH}bin.png"},
 }
 
 BANNER_BUTTONS = {
-    "new_group": {"tooltip": "New Group", "icon": "icons/plus.png"},
-    "start_session": {"tooltip": "Start Session", "icon": "icons/start.png"},
-    "pause_timer": {"tooltip": "Pause Timer", "icon": "icons/pause.png"},
-    "restart_timer": {"tooltip": "Restart Timer", "icon": "icons/restart.png"},
+    "new_group": {"tooltip": "New Group", "icon": f"{ICON_PATH}plus.png"},
+    "start_session": {"tooltip": "Start Session", "icon": f"{ICON_PATH}start.png"},
+    "restart_timer": {"tooltip": "Restart Timer", "icon": f"{ICON_PATH}restart.png"},
 }

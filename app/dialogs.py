@@ -152,3 +152,67 @@ class DeleteGroupDialog(QDialog):
     def close_message(self):
         self.parent().delete_group(self.group_name)
         self.accept()
+
+class MessageDialog(QDialog):
+    def __init__(self, parent=None, title=None, text=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setFixedSize(240, 120)
+        
+        layout = QVBoxLayout(self)
+        self.message_label = QLabel(text)
+        self.message_label.setAlignment(Qt.AlignCenter)
+        self.message_label.setWordWrap(True)
+        layout.addWidget(self.message_label)
+
+        btn_layout = QHBoxLayout()
+  
+        btn = QPushButton("Continue")
+        btn.clicked.connect(self.accept)
+        
+        btn_layout.addWidget(self.txt_btn)
+        layout.addLayout(btn_layout)
+
+class StartSessionDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Session Length")
+        self.setFixedSize(240, 120)
+
+        self.time = 20
+        
+        layout = QVBoxLayout(self)
+        self.time_label = QLabel(f"{self.time} Minutes")
+        self.time_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.time_label)
+
+        btn_layout = QHBoxLayout()
+  
+        self.increment_btn = QPushButton("+1 minute")
+        self.increment_btn.clicked.connect(self.increment_minute)
+        
+        self.decrement_btn = QPushButton("-1 minute")
+        self.decrement_btn.clicked.connect(self.decrement_minute)
+
+        btn_layout.addWidget(self.increment_btn)
+        btn_layout.addWidget(self.decrement_btn)
+        layout.addLayout(btn_layout)
+
+        self.start_btn = QPushButton("Start")
+        self.start_btn.clicked.connect(self.accept)
+
+        layout.addWidget(self.start_btn)
+
+    def increment_minute(self):
+        self.time += 1
+        self.time_label.setText(f"{self.time} Minutes")
+
+    def decrement_minute(self):
+        if self.time <= 2:
+            print("Cannot be less than 2 minutes")
+        else:
+            self.time -= 1
+            self.time_label.setText(f"{self.time} Minutes")
+
+    def get_length(self):
+        return self.time

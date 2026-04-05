@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                              QLabel, QFrame, QPushButton, QScrollArea)
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QEvent
 from PyQt5.QtGui import QIcon
 from constants import *
 from dialogs import *
@@ -79,7 +79,7 @@ class GroupWidget(QWidget):
             btn_layout_inner.addWidget(btn)
 
         self.active_btn = QPushButton()
-        btn.setObjectName("active")
+        self.active_btn.setObjectName("active")
         self.active_btn.setFixedSize(32, 32)
         self.active_btn.setStyleSheet("""
             QPushButton {
@@ -90,9 +90,9 @@ class GroupWidget(QWidget):
         """)
 
         if active:
-            self.active_btn.setIcon(QIcon("icons/tick.png"))
+            self.active_btn.setIcon(QIcon("app/icons/tick.png"))
         else:
-            self.active_btn.setIcon(QIcon("icons/cross.png"))
+            self.active_btn.setIcon(QIcon("app/icons/cross.png"))
 
         self.active_btn.clicked.connect(lambda checked, gn=group_name, bi="active": callback(gn, bi))
         btn_layout_inner.addWidget(self.active_btn)
@@ -104,9 +104,9 @@ class GroupWidget(QWidget):
         self.active = not self.active
 
         if self.active:
-            self.active_btn.setIcon(QIcon("icons/tick.png"))
+            self.active_btn.setIcon(QIcon("app/icons/tick.png"))
         else:
-            self.active_btn.setIcon(QIcon("icons/cross.png"))
+            self.active_btn.setIcon(QIcon("app/icons/cross.png"))
 
         return self.active
 
@@ -120,7 +120,11 @@ class SessionTracker(QWidget):
         self.timer.timeout.connect(self.update_timer)
 
         self.time_left = 0
+        self.session_duration = 0
+
         self.session_active = False
+        self.session_paused = False
+
         self.selected_group = None
         self.selected_item = None
 
@@ -168,6 +172,14 @@ class SessionTracker(QWidget):
             btn.setStyleSheet("border: 1.5px solid black; border-radius: 6px; background: #f0f0f0;")
             btn.clicked.connect(lambda checked, b=k: self.banner_btn(b))
             control_btns_layout.addWidget(btn)
+
+        self.pause_btn = QPushButton()
+        self.pause_btn.setIcon(QIcon("app/icons/pause.png"))
+        self.pause_btn.setToolTip("Pause Session")
+        self.pause_btn.setFixedSize(32, 32)
+        self.pause_btn.setStyleSheet("border: 1.5px solid black; border-radius: 6px; background: #f0f0f0;")
+        self.pause_btn.clicked.connect(lambda checked, b="toggle_pause": self.banner_btn(b))
+        control_btns_layout.addWidget(self.pause_btn)
 
         control_btns_layout.addStretch()
 
@@ -242,11 +254,18 @@ class SessionTracker(QWidget):
             self.selected_group = random.choice(list(valid_groups.keys()))
             self.selected_item = random.choice(valid_groups[self.selected_group]["items"])
             
-            self.time_left = 1 * 60
-            self.session_active = True
-            self.update_timer()
+            dialog = StartSessionDialog(self)
 
-            self.timer.start(1000)
+            if dialog.exec_():
+                self.session_duration = dialog.get_length() * 60
+                self.time_left = self.session_duration
+
+                self.session_active = True
+                self.is_paused = False
+
+                self.update_timer()
+
+                self.timer.start(1000)
 
     def update_timer(self):
         if self.time_left > 0:
@@ -254,6 +273,8 @@ class SessionTracker(QWidget):
             self.update_timer_label()
         else:
             self.timer.stop()
+            self.session_active = False
+            self.session_paused = False
             self.timer_label.setText("00:00")
             self.session_label.setText(f"SESSION COMPLETE: {self.selected_group} - {self.selected_item}")
 
@@ -261,6 +282,26 @@ class SessionTracker(QWidget):
         minutes = int(self.time_left // 60)
         seconds = int(self.time_left % 60)
         self.timer_label.setText(f"{minutes:02}:{seconds:02}")
+
+    def resume_session(self):
+        self.timer.start(1000)
+        self.session_paused = False
+        self.session_label.setText(f"CURRENT SESSION: {self.selected_group} - {self.selected_item}")
+
+    def pause_session(self):
+        self.timer.stop()
+        self.session_paused = True
+        self.session_label.setText(f"PAUSED: {self.selected_group} - {self.selected_item}")
+
+    def toggle_pause(self):
+        if not self.session_active:
+            print("No session active")
+            return
+        
+        if self.session_paused:
+            self.resume_session()
+        else:
+            self.pause_session()
 
     def group_btn(self, group_name, btn_key):
         print(f"Group: {group_name} | Button: {btn_key}")
@@ -290,3 +331,5 @@ class SessionTracker(QWidget):
             dialog.exec_()
         elif btn_key == "start_session":
             self.start_session()
+        elif btn_key == "toggle_pause":
+            self.toggle_pause()
