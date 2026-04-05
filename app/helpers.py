@@ -15,7 +15,7 @@ def load_data():
         with open(SAVE_PATH, 'r') as file:
             saved_groups = json.load(file)
     except Exception as error:
-        print(f"An error occured whilst loadingL {error}")
+        print(f"An error occured whilst loading: {error}")
         
     except FileNotFoundError:
         print("File wasn't found")
@@ -24,12 +24,29 @@ def load_data():
 
     return saved_groups
 
-def save_session_data(groups):
+def save_session_data(sessions):
+    print(sessions)
     try:
         with open("app/data/sessions.json", "w") as file:
-            json.dump(groups, file)
+            json.dump(sessions, file)
     except Exception as error:
         print(f"An error occured whilst saving: {error}")
+
+def load_session_data():
+    saved_sessions = {}
+
+    try:
+        with open(SAVE_PATH, 'r') as file:
+            saved_sessions = json.load(file)
+    except Exception as error:
+        print(f"An error occured whilst loading: {error}")
+        
+    except FileNotFoundError:
+        print("File wasn't found")
+    except json.JSONDecodeError:
+        print("File is empty")
+
+    return saved_sessions
 
 def get_valid_groups(groups):
     valid_groups = {}

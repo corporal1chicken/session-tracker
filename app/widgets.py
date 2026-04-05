@@ -116,6 +116,9 @@ class SessionTracker(QWidget):
         self.current_groups = {}
         self.group_widgets = {}
 
+        self.saved_sessions = load_session_data()
+        print(self.saved_sessions)
+
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_timer)
 
@@ -315,8 +318,9 @@ class SessionTracker(QWidget):
         dialog = SessionEnded(self, f"Completed session")
 
         if dialog.exec_():
-            #save_session_data()
+            save_session_data(self.current_session)
             self.current_session = {}
+            
             if start_next:
                 self.start_session()
 

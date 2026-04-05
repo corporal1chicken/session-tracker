@@ -1,16 +1,23 @@
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QDialog, QLineEdit, QCheckBox, QWidget)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 
 class BaseDialog(QDialog):
-    def __init__(self, parent=None, title="Dialog", width=240, height=120):
+    def __init__(self, parent=None, title="Dialog", width=250, height=180):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setFixedSize(width, height)
 
         self.main_layout = QVBoxLayout(self)
 
+        self.error_label = QLabel("abcdef")
+        self.error_label.setStyleSheet("color: red; font-size: 11px")
+        self.error_label.hide()
+        self.error_label.setAlignment(Qt.AlignCenter)
+        self.main_layout.addWidget(self.error_label)
+
         self.title_label = QLabel()
+        self.title_label.setStyleSheet("font-size: 14px; padding: 2px")
         self.title_label.setWordWrap(True)
         self.title_label.setAlignment(Qt.AlignCenter)
         self.main_layout.addWidget(self.title_label)
@@ -21,7 +28,7 @@ class BaseDialog(QDialog):
 
         self.button_layout = QHBoxLayout()
         self.main_layout.addLayout(self.button_layout)
-
+        
     def set_header(self, text):
         self.title_label.setText(text)
 
@@ -31,6 +38,12 @@ class BaseDialog(QDialog):
         self.button_layout.addWidget(btn)
 
         return btn
+    
+    def show_error(self, message):
+        self.error_label.setText(message)
+        self.error_label.show()
+
+        QTimer.singleShot(4000, self.error_label.hide)
     
 class NewGroupDialog(BaseDialog):
     def __init__(self, parent=None):
@@ -49,10 +62,10 @@ class NewGroupDialog(BaseDialog):
         name = self.input_name.text().strip()
 
         if name == "":
-            print("Name cannot be blank")
+            self.show_error("Name cannot be blank")
             return
         elif len(name) > 12:
-            print("Name cannot be more than 12 characters")
+            self.show_error("Name cannot be more than 12 characters")
             return
 
         self.accept()
@@ -87,10 +100,10 @@ class AddItemDialog(BaseDialog):
         item = self.input_item.text().strip()
 
         if len(item) == 0:
-            print("Item cannot be blank")
+            self.show_error("Item cannot be blank")
             return
         elif len(item) > 24:
-            print("Item cannot be more than 24 characters")
+            self.show_error("Item cannot be more than 24 characters")
             return
         
         self.accept()
@@ -137,7 +150,7 @@ class StartSessionDialog(QDialog):
         
         layout = QVBoxLayout(self)
         
-        self.time_label = QLabel(f"{self.time} Minutes")
+        self.time_label = QLabel(f"{self.time} minutes")
         self.time_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.time_label)
 
@@ -165,14 +178,14 @@ class StartSessionDialog(QDialog):
 
     def increment_minute(self):
         self.time += 1
-        self.time_label.setText(f"{self.time} Minutes")
+        self.time_label.setText(f"{self.time} minutes")
 
     def decrement_minute(self):
         if self.time <= 1:
-            print("Cannot be less than 2 minutes")
+            pass
         else:
             self.time -= 1
-            self.time_label.setText(f"{self.time} Minutes")
+            self.time_label.setText(f"{self.time} minutes")
 
     def get_details(self):
         name = self.input_name.text() if not self.input_name.text() == "" else "New Session"

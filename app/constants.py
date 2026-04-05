@@ -8,6 +8,7 @@ GROUP_BUTTONS = {
 }
 
 BANNER_BUTTONS = {
+    "history": {"tooltip": "View History", "icon": f"{ICON_PATH}history.png"},
     "new_group": {"tooltip": "New Group", "icon": f"{ICON_PATH}plus.png"},
     "start_session": {"tooltip": "Start Session", "icon": f"{ICON_PATH}start.png"},
     "restart_timer": {"tooltip": "Restart Timer", "icon": f"{ICON_PATH}restart.png"},
