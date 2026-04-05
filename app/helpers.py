@@ -2,7 +2,6 @@ from constants import SAVE_PATH
 import json
 
 def save_data(groups):
-    print(groups)
     try:
         with open(SAVE_PATH, "w") as file:
             json.dump(groups, file)
@@ -15,6 +14,8 @@ def load_data():
     try:
         with open(SAVE_PATH, 'r') as file:
             saved_groups = json.load(file)
+    except Exception as error:
+        print(f"An error occured whilst loadingL {error}")
         
     except FileNotFoundError:
         print("File wasn't found")
@@ -22,6 +23,13 @@ def load_data():
         print("File is empty")
 
     return saved_groups
+
+def save_session_data(groups):
+    try:
+        with open("app/data/sessions.json", "w") as file:
+            json.dump(groups, file)
+    except Exception as error:
+        print(f"An error occured whilst saving: {error}")
 
 def get_valid_groups(groups):
     valid_groups = {}

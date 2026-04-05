@@ -119,14 +119,16 @@ class SessionTracker(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_timer)
 
-        self.time_left = 0
-        self.session_duration = 0
+        self.current_session = {}
+
+        #self.time_left = 0
+        #self.session_duration = 0
 
         self.session_active = False
         self.session_paused = False
 
-        self.selected_group = None
-        self.selected_item = None
+        #self.selected_group = None
+        #self.selected_item = None
 
         self.initUI()
 
@@ -250,48 +252,95 @@ class SessionTracker(QWidget):
 
         success, message, valid_groups = get_valid_groups(self.current_groups)
         print(message)
-        if success:
-            self.selected_group = random.choice(list(valid_groups.keys()))
-            self.selected_item = random.choice(valid_groups[self.selected_group]["items"])
-            
+        if success:    
             dialog = StartSessionDialog(self)
 
             if dialog.exec_():
-                self.session_duration = dialog.get_length() * 60
-                self.time_left = self.session_duration
+                chosen_group = random.choice(list(valid_groups.keys()))
+                chosen_item = random.choice(valid_groups[chosen_group]['items'])
 
+                total_duration, name = dialog.get_details()
+
+                self.current_session = {
+                    "name": name,
+                    "duration": total_duration * 60,
+                    "remaining": total_duration * 60,
+                    "group": chosen_group,
+                    "item": chosen_item,
+                    "notes": "",
+                }
+                print(self.current_session)
                 self.session_active = True
-                self.is_paused = False
+                self.session_paused = False
+
+                self.session_label.setText(f"CURRENT SESSION: {self.current_session['group']} - {self.current_session['item']}")
 
                 self.update_timer()
 
                 self.timer.start(1000)
 
     def update_timer(self):
-        if self.time_left > 0:
-            self.time_left -= 1
+        if self.current_session['remaining'] > 0:
+            self.current_session['remaining'] -= 1
             self.update_timer_label()
         else:
-            self.timer.stop()
-            self.session_active = False
-            self.session_paused = False
-            self.timer_label.setText("00:00")
-            self.session_label.setText(f"SESSION COMPLETE: {self.selected_group} - {self.selected_item}")
+            self.end_session(False)
 
     def update_timer_label(self):
-        minutes = int(self.time_left // 60)
-        seconds = int(self.time_left % 60)
+        minutes = int(self.current_session['remaining'] // 60)
+        seconds = int(self.current_session['remaining'] % 60)
         self.timer_label.setText(f"{minutes:02}:{seconds:02}")
 
     def resume_session(self):
         self.timer.start(1000)
         self.session_paused = False
-        self.session_label.setText(f"CURRENT SESSION: {self.selected_group} - {self.selected_item}")
+        self.session_label.setText(f"CURRENT SESSION: {self.current_session['group']} - {self.current_session['item']}")
 
     def pause_session(self):
         self.timer.stop()
         self.session_paused = True
-        self.session_label.setText(f"PAUSED: {self.selected_group} - {self.selected_item}")
+        self.session_label.setText(f"PAUSED: {self.current_session['group']} - {self.current_session['item']}")
+
+    def end_session(self, start_next):
+        if not self.session_active:
+            print("no session active")
+            return
+        
+        self.timer.stop()
+        self.session_active = False
+        self.session_paused = False
+        self.timer_label.setText("00:00")
+        self.session_label.setText(f"SESSION COMPLETE: {self.current_session['group']} - {self.current_session['item']}")
+
+        dialog = SessionEnded(self, f"Completed session")
+
+        if dialog.exec_():
+            #save_session_data()
+            self.current_session = {}
+            if start_next:
+                self.start_session()
+
+    def restart_session(self):
+        if not self.session_active:
+            print("No session active")
+            return
+        
+        dialog = RestartSessionDialog(self)
+        self.pause_session()
+
+        if dialog.exec_():
+            option = dialog.get_option()
+            self.resume_session()
+
+            if option == "hard_reset":
+                self.end_session(True)
+            elif option == "soft_reset":
+                self.timer.stop()
+
+                self.current_session['remaining'] = self.current_session['duration']
+                self.update_timer()
+
+                self.timer.start(1000)
 
     def toggle_pause(self):
         if not self.session_active:
@@ -321,7 +370,6 @@ class SessionTracker(QWidget):
         elif btn_key == "active":
             new = group_widget.change_active()
             group_data['active'] = new 
-            save_data(self.current_groups)
 
     def banner_btn(self, btn_key):
         print(f"Control Button: {btn_key}")
@@ -333,3 +381,5 @@ class SessionTracker(QWidget):
             self.start_session()
         elif btn_key == "toggle_pause":
             self.toggle_pause()
+        elif btn_key == "restart_timer":
+            self.restart_session()
